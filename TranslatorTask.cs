@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Text.RegularExpressions;
 using XUnity.AutoTranslator.Plugin.Core.Endpoints;
 using System.Text;
@@ -38,12 +36,8 @@ public class TranslatorTask
                 if (context == null || context.Response == null) return false;
                 if (state == TaskState.Completed || state == TaskState.Failed)
                 {
-                    var rs = new
-                    {
-                        texts = result
-                    };
                     // 返回响应
-                    string responseString = JsonConvert.SerializeObject(rs);
+                    string responseString = SimpleJson.SerializeTexts(result);
                     byte[] buffer = Encoding.UTF8.GetBytes(responseString);
                     context.Response.ContentLength64 = buffer.Length;
                     context.Response.OutputStream.Write(buffer, 0, buffer.Length);
@@ -166,9 +160,7 @@ public class TranslatorTask
                 using (StreamReader reader = new StreamReader(body, request.ContentEncoding))
                 {
                     string requestBody = reader.ReadToEnd();
-                    //Log($"Received POST request with body: {requestBody}");
-                    var requestData = JObject.Parse(requestBody);
-                    var texts = requestData["texts"] != null ? requestData["texts"].ToObject<string[]>() : new string[0];
+                    var texts = SimpleJson.ParseTexts(requestBody);
                     var task = AddTask(texts, context);
                 }
             }
@@ -348,17 +340,11 @@ public class TranslatorTask
             {
                 try
                 {
-                    var modelParamsData = JsonConvert.DeserializeObject<JObject>(_modelParams);
-                    if (modelParamsData != null)
-                    {
-                        foreach (var item in modelParamsData)
-                            if (item.Value != null)
-                            {
-                                requestBody[item.Key] = item.Value;
-                            }
-                    }
+                    var modelParamsData = SimpleJson.ParseModelParams(_modelParams);
+                    foreach (var item in modelParamsData)
+                        requestBody[item.Key] = item.Value;
                 }
-                catch (JsonReaderException ex)
+                catch (Exception ex)
                 {
                     Logger.Error($"模型参数解析错误: {ex.Message}");
                 }
@@ -374,7 +360,7 @@ public class TranslatorTask
 
             // 写入请求体
             requestBody.Add("stream", true);
-            var requestJson = JsonConvert.SerializeObject(requestBody);
+            var requestJson = SimpleJson.Serialize(requestBody);
             //Log($"请求: {requestJson}");
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
             {
@@ -400,8 +386,7 @@ public class TranslatorTask
 
                     try
                     {
-                        var json = JObject.Parse(data);
-                        var content = json["choices"]?[0]?["delta"]?["content"]?.ToString();
+                        var content = SimpleJson.ParseSseContent(data);
                         if (!string.IsNullOrEmpty(content))
                         {
                             lineResponse += content;
@@ -477,7 +462,7 @@ public class TranslatorTask
                             }
                         }
                     }
-                    catch (JsonReaderException ex)
+                    catch (Exception ex)
                     {
                         Logger.Error($"解析流响应出错: {ex.Message}");
                     }

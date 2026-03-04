@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using XUnity.AutoTranslator.Plugin.Core.Endpoints;
 using XUnity.AutoTranslator.Plugin.Core.Endpoints.Www;
 
@@ -38,21 +36,15 @@ internal class LLMTranslatorEndpoint : WwwEndpoint
     public override void OnCreateRequest(IWwwRequestCreationContext context)
     {
         Logger.Debug($"翻译请求: {context.UntranslatedTexts[0]}");
-        var requestBody = new
-        {
-            texts = context.UntranslatedTexts
-        };
-        context.Complete(new WwwRequestInfo("http://127.0.0.1:20000/", JsonConvert.SerializeObject(requestBody)));
+        context.Complete(new WwwRequestInfo("http://127.0.0.1:20000/", SimpleJson.SerializeTexts(context.UntranslatedTexts)));
     }
 
     public override void OnExtractTranslation(IWwwTranslationExtractionContext context)
     {
         var data = context.ResponseData;
 
-        JObject jsonResponse;
-        jsonResponse = JObject.Parse(data);
-        Logger.Debug($"翻译结果: {jsonResponse}");
-        var rs = jsonResponse["texts"]?.ToObject<string[]>() ?? null;
+        Logger.Debug($"翻译结果: {data}");
+        var rs = SimpleJson.ParseTexts(data);
         if ((rs?.Length ?? 0) == 0)
         {
             context.Fail("翻译结果为空");
