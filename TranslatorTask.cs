@@ -497,7 +497,7 @@ public class TranslatorTask
             foreach (var task in tasks)
             {
                 //失败了重新翻译
-                if (task.state != TaskData.TaskState.Completed)
+                if (task.state != TaskData.TaskState.Completed && task.state != TaskData.TaskState.Closed)
                 {
                     task.retryCount++;
                     if (task.retryCount < _maxRetry)
