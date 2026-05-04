@@ -210,7 +210,7 @@ public class TranslatorTask
                     }
                     if (task.retryCount > 2 && tasks.Count > 0)
                     {
-                        continue;
+                        break;
                     }
                     toltoken += taskToken;
                     tasks.Add(task);
